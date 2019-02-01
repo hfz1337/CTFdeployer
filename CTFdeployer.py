@@ -6,8 +6,8 @@ import re
 import json
 import os
 
-url = 'http://localhost:8000'                                # The CTFd platform base URL
-cookies = {'session':'259a720c-bbb3-4eb1-b76b-8cca58e013de'} #fac1f8b6-7ef1-4d77-abcb-110936c49ab1'} # The CTFd admin session cookie
+url = ''                 # The CTFd platform base URL
+cookies = {'session':''} # The CTFd admin session cookie
 
 def get_parser():
 	parser = argparse.ArgumentParser(description='                    [Hafidh ZOUAHI | gh_zouahi@esi.dz]\n'
