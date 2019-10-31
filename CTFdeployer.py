@@ -6,8 +6,8 @@ import re
 import json
 import os
 
-url = ''                 # The CTFd platform base URL
-cookies = {'session':''} # The CTFd admin session cookie
+url = 'http://localhost:4000'                                  # The CTFd platform base URL
+cookies = {'session':'14eae1cb-f72e-4ed9-a07c-1397d65b8bc5'}   # The CTFd admin session cookie
 
 def get_parser():
 	parser = argparse.ArgumentParser(description='                    [Hafidh ZOUAHI | gh_zouahi@esi.dz]\n'
@@ -19,13 +19,17 @@ def get_parser():
 	'                           |_|            |___/                             \n\n'
 	'In order to deploy challenges:\n'
 	'   [!] Each challenge must be in a separate folder containing the following elements:\n'
-	'       name.txt           The file that contains the name of the challenge\n'
-	'       category.txt       The file that contains the name of the category that the challenge belongs to\n'
-	'       description.txt    The file that contains the description of the challenge\n'
-	'       value.txt          The file that contains the number of points earned by solving the challenge\n'
-	'       state.txt          The file that contains the state of the challenge, either hidden or visible\n'
-	'       type.txt           The file that contains the type of the challenge, either standard or dynamic\n'
-	'       flag.txt           The file that contains the flag of the challenge\n'
+	'       ch_info.txt        A JSon file format that contains the name, category, description, value,\n'
+	'                            state, type and the flag of the challenge\n'
+	'                          Exemple: {\n'
+    '                                       "category": "Misc",\n'
+    '                                       "description": "unhexlify me if you can: 666c61677b3132333435367d",\n'
+    '                                       "flag": "flag{123456}",\n'
+    '                                       "name": "UnHexMe",\n'
+    '                                       "state": "visible",\n'
+    '                                       "type": "standard",\n'
+    '                                       "value": "25"\n'
+    '                                   }\n'
 	'       files/             The folder that contains the files associated to the challenge\n'
 	'   [!] All challenges folders must be in the same root directory.\n'
 	'   [!] Then the script should be used as follow: ./CTFdeployer -a path/to/root/dir',
@@ -77,15 +81,15 @@ def change_state(ch_id):
 	headers = {'csrf-token':csrf_nonce, 'content-type': 'application/json'}
 	resp = req.get(url = url + '/api/v1/challenges/' + ch_id, cookies = cookies, headers = headers)
 	data = json.loads(resp.text.strip())['data']
-	state = states[data['state']]
-	ch_info = {"name":data['name'],
-               "category":data['category'],
-               "description":data['description'],
-               "value":data['value'],
-               "state":state,
-               "type":data['type']}
+	new_state = states[data['state']]
+	ch_info = {"name": data['name'],
+               "category": data['category'],
+               "description": data['description'],
+               "value": data['value'],
+               "state": new_state,
+               "type": data['type']}
 	resp = req.patch(url = url + '/api/v1/challenges/' + ch_id, cookies = cookies, json = ch_info, headers = headers)
-	if resp.ok: print_green('[+] Challenge n°' + ch_id + '\'s state is now: ' + state)
+	if resp.ok: print_green('[+] Challenge n°' + ch_id + '\'s state is now: ' + new_state)
 	else: print_red('[-] There was an error changing challenge n°' + ch_id + '\'s state.')
     
 def deploy_chall(data, files2up):
@@ -119,14 +123,15 @@ def deploy_chall(data, files2up):
 	
 	
 def load_chall_info(directory):
-	data = {'ch_info':{}}
+	ch_info = json.loads(open(directory + '/ch_info.txt').read().strip())
+	data = {'ch_info': {}}
 	files2up = False
 	if 'files' in os.listdir(directory):
 		if os.listdir(directory + '/files') != []: files2up = True
 	for i in ['name', 'category', 'description', 'value', 'state', 'type']:
-		data['ch_info'][i] = open(directory + '/' + i + '.txt').read().strip()
-	data['flag_info'] = {"content":open(directory + '/flag.txt').read().strip(),
-                         "type":"static"}
+		data['ch_info'][i] = ch_info[i]
+	data['flag_info'] = {'content': ch_info['flag'],
+                         'type': 'static'}
 	data['files'] = []
 	if files2up:
 		for i in os.listdir(directory + '/' + 'files'):
@@ -149,28 +154,28 @@ def main():
 		if '-' in args.d_id_list:
 			a, b = args.d_id_list.split('-')
 			a, b = int(a), int(b)
-			for i in range(a, b+1):
+			for i in range(a, b + 1):
 				delete(str(i))
 				
 		elif ',' in args.d_id_list:
 			l = args.d_id_list.split(',')
 			for i in l:
-				delete(i)
+				delete(str(i))
 		else:
 			delete(args.d_id_list)
 	elif args.c_id_list:
 		if '-' in args.c_id_list:
 			a, b = args.c_id_list.split('-')
 			a, b = int(a), int(b)
-			for i in range(a, b+1):
+			for i in range(a, b + 1):
 				change_state(str(i))
 				
 		elif ',' in args.c_id_list:
 			l = args.c_id_list.split(',')
 			for i in l:
-				change_state(args.c_id_list)
+				change_state(str(i))
 		else:
-			change_state(str(i))
+			change_state(args.c_id_list)
 	else:
 		parser.print_help()
 
